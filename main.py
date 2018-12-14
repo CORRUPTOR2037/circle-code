@@ -28,7 +28,7 @@ if __name__ == '__main__':
         if arg == '-h' or arg == '--help':
             print('Circle code generator')
             print('  -c, --config    path : Set config file')
-            print('  -e, --encoding  name : Encoding for files. UTF-8 by default')
+            print('  -e, --encoding  name : Encoding for files.', encoding, 'by default')
             print('  -g, --gen-inline msg : Generate image from message specified')
             print('  -G, --gen-file  path : Generate image from file specified')
             print('  -h, --help           : Help')
@@ -93,6 +93,7 @@ if __name__ == '__main__':
     config = config_parser.Config(config_file, encoding)
     
     if operation[0] == 'gen-inline':
+        msg = operation[1]
         gen = generator.Generator(config)
         gen.generate(msg)
         if show_trigger:
