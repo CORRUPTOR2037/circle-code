@@ -1,22 +1,31 @@
 from PIL import Image, ImageDraw
 import aggdraw
+from math import cos, sin, pi
+
 
 class Generator:
     def __init__(self, config):
         self.config = config
         
     
-    def generate(self, text):
-        image = Image.new('RGBA', self.config.size, (255,255,255,0))
+    def generate(self, data):
+        image = Image.new('RGBA', (self.config.size, self.config.size), (255,255,255,0))
         self.last_image = image
+
         #draw = ImageDraw.Draw(image)
         draw = aggdraw.Draw(image)
         
         self.draw_background(draw)
+        draw.flush()
         
         self.insert_logo(image)
+        draw = aggdraw.Draw(image)
         
-        self.insert_data()
+        self.insert_centring_key(draw)
+        
+        self.insert_data(draw, data)
+        
+        draw.flush()
         
         image.save(self.config.generated_filename + '.png', 'PNG')
         pass
@@ -40,7 +49,7 @@ class Generator:
             outline = None
             width = 0
 
-        size = (width/2, width/2, self.config.size[0] - width/2, self.config.size[1] - width/2)
+        size = (width/2, width/2, self.config.size - width/2, self.config.size - width/2)
 
         if shape == 'circle':
             draw.ellipse(size, outline, fill)
@@ -81,9 +90,7 @@ class Generator:
             draw.arc((size[2] - round_half[0], size[1], size[2], round_half[1]), 0, 90, outline)
             draw.arc((size[0], size[3] - round_half[1], round_half[0], size[3]), 180, 270, outline)
             draw.arc((size[2] - round_half[0], size[3] - round_half[1], size[2], size[3]), 270, 360, outline)
-            
-        draw.flush()
-    
+
     
     def insert_logo(self, image):
         draw_type = self.config.logo_draw_type
@@ -103,7 +110,7 @@ class Generator:
         if logo.size[0] > image.size[0] or logo.size[1] > image.size[1]:
             raise Exception('Logo is larger than image code.')
         
-        ofs = [int((a - logo.size[i]) / 2) for i, a in enumerate(self.config.size)]
+        ofs = [int((self.config.size - a) / 2) for i, a in enumerate(logo.size)]
         
         def to_rgba(c):
             if len(c) <= 4: return c
@@ -134,10 +141,65 @@ class Generator:
         
         image.putdata(data)
         
+        
     
-    def insert_data(self):
-        pass
+    def insert_centring_key(self, draw):
     
+        center = (self.config.size / 2  + self.config.key_radius, self.config.size / 2)
+        width = self.config.data_width / 2
+        fill = aggdraw.Brush(self.config.data_color)
+        draw.ellipse((center[0] - width, center[1] - width,
+                      center[0] + width, center[1] + width), None, fill)
     
+        
+    def insert_data(self, draw, data):
+        center = (self.config.size / 2, self.config.size / 2)
+        width = self.config.data_width / 2
+        fill = aggdraw.Brush(self.config.data_color)
+        pen = aggdraw.Pen(self.config.data_color, width * 2 + 1)
+        
+        ofs = 0
+        for i in range(1, 11):
+            if ofs >= len(data):
+                break
+            key = 'data_layer_' + str(i)
+            try:
+                layer = self.config.__getattr__(key)
+                radius, count = layer
+                layer_data = data[ofs : min(ofs + count, len(data))]
+                ofs += count
+            except:
+                continue
+            
+            point = (center[0], center[1])
+            ac, ar = 2 * pi / count, 360 / count
+            field = (point[0] - radius, point[1] - radius,
+                     point[0] + radius, point[1] + radius)
+            i1 = 0
+            dl = len(layer_data)
+            while i1 < dl:
+                if not layer_data[i1]:
+                    i1 += 1
+                    continue
+                
+                i2 = i1
+                while i2 + 1 < dl and layer_data[i2 + 1]:
+                    i2 += 1
+                p1 = i1 * ar
+                a1 = i1 * ac
+                a1 = (center[0] + cos(a1) * radius, center[1] - sin(a1) * radius)
+                p2 = i2 * ar
+                a2 = i2 * ac
+                a2 = (center[0] + cos(a2) * radius, center[1] - sin(a2) * radius)
+ 
+                draw.ellipse((a1[0] - width, a1[1] - width,
+                              a1[0] + width, a1[1] + width), None, fill)
+                draw.ellipse((a2[0] - width, a2[1] - width,
+                              a2[0] + width, a2[1] + width), None, fill)
+                draw.arc(field, p1, p2, pen)
+                i1 = i2 + 1
+
+        
     def show(self):
         self.last_image.show()
+    

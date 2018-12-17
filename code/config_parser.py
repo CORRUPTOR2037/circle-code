@@ -21,13 +21,19 @@ class Config:
             'logo_path': 'resources/logo.png',
             'logo_draw_type': 'sub', # set, sub,
             'logo_scale': 1,
-            'size': (512, 512),
+            'size': 512,
             'background_shape': 'circle',  # circle, rectangle, soft_rectangle
             'background_color': (121, 180, 110),
             'outline_color': None,
             'outline_width': None,
             'data_color': (255, 255, 255),
-            'generated_filename': 'code'
+            'generated_filename': 'code',
+            'ecc': 14,
+            'key_radius': 150,
+            'data_width': 10,
+            'data_layer_1': (180, 120),
+            'data_layer_2': (200, 140),
+            'data_layer_3': (220, 160)
         }
 
 

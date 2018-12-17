@@ -8,6 +8,7 @@ import code.config_parser as config_parser
 import code.generator as generator
 import code.parser as parser
 import code.tester as tester
+import code.codec as codec
 
 
 def print_err(*args, **kwargs):
@@ -91,24 +92,27 @@ if __name__ == '__main__':
         exit()
     
     config = config_parser.Config(config_file, encoding)
+    coder = codec.Codec(config)
     
     if operation[0] == 'gen-inline':
         msg = operation[1]
+        encoded = coder.encode(msg)
         gen = generator.Generator(config)
-        gen.generate(msg)
+        gen.generate(encoded)
         if show_trigger:
             gen.show()
 
     elif operation[0] == 'gen-file':
         f = codecs.open(operation[1], 'r', encoding)
         msg = f.read()
+        encoded = coder.encode(msg)
 
         gen = generator.Generator(config)
-        gen.generate(msg)
+        gen.generate(encoded)
         if show_trigger:
             gen.show()
 
     elif operation[0] == 'parse':
         prs = parser.Parser(config)
         msg = prs.parse(operation[1])
-        print(msg)
+        print(coder.decode(msg))
