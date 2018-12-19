@@ -29,7 +29,7 @@ class Config:
             'data_color': (255, 255, 255),
             'generated_filename': 'code',
             'ecc': 14,
-            'key_radius': 150,
+            'transform_key_radius': None,
             'data_width': 10,
             'data_layer_1': (180, 120),
             'data_layer_2': (200, 140),

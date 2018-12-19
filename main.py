@@ -28,14 +28,16 @@ if __name__ == '__main__':
         arg = args[i]
         if arg == '-h' or arg == '--help':
             print('Circle code generator')
-            print('  -c, --config    path : Set config file')
-            print('  -e, --encoding  name : Encoding for files.', encoding, 'by default')
-            print('  -g, --gen-inline msg : Generate image from message specified')
-            print('  -G, --gen-file  path : Generate image from file specified')
-            print('  -h, --help           : Help')
-            print('  -p, --parse     path : Parse code')
-            print('  -t, --test           : Run tests')
-            print('  -s, --show           : Show generated result on screen')
+            print('  -c, --config       path : Set config file')
+            print('  -e, --encoding     name : Encoding for files.', encoding, 'by default')
+            print('  -g, --gen-inline    msg : Generate image from message specified')
+            print('  -G, --gen-file     path : Generate image from file specified')
+            print('  -h, --help              : Help')
+            print('  -p, --parse        path : Parse code from image')
+            print('  -P, --force-parse  path : Parse code from distorted image')
+            print('  -t, --test              : Run tests')
+            print('  -T, --test-draw         : Draw test image')
+            print('  -s, --show              : Show generated result on screen')
             exit()
         
         if arg == '-c' or arg == '--config':
@@ -76,10 +78,24 @@ if __name__ == '__main__':
                 print_err('Not enough arguments: message is not specified. Aborting.')
                 exit()
         
+        if arg == '-P' or arg == '--force-parse':
+            if i + 1 < len(args):
+                operation = ('Fparse', args[i+1])
+                i += 1
+            else:
+                print_err('Not enough arguments: message is not specified. Aborting.')
+                exit()
+                
         if arg == '-t' or arg == '--test':
             print('Running tests')
             tester.test('tests', code)
             print('Completed.')
+            exit()
+        
+        if arg == '-T' or arg == '--test-draw':
+            config = config_parser.Config(config_file, encoding)
+            gen = generator.Generator(config)
+            gen.generate(None)
             exit()
         
         if arg == '-s' or arg == '--show':
@@ -96,19 +112,22 @@ if __name__ == '__main__':
     
     if operation[0] == 'gen-inline':
         msg = operation[1]
-        encoded = coder.encode(msg)
+        msg = coder.encode(msg)
+
         gen = generator.Generator(config)
-        gen.generate(encoded)
+        gen.generate(msg)
+        
         if show_trigger:
             gen.show()
 
     elif operation[0] == 'gen-file':
         f = codecs.open(operation[1], 'r', encoding)
         msg = f.read()
-        encoded = coder.encode(msg)
+        msg = coder.encode(msg)
 
         gen = generator.Generator(config)
-        gen.generate(encoded)
+        gen.generate(msg)
+        
         if show_trigger:
             gen.show()
 
@@ -116,3 +135,10 @@ if __name__ == '__main__':
         prs = parser.Parser(config)
         msg = prs.parse(operation[1])
         print(coder.decode(msg))
+    
+    elif operation[0] == 'Fparse':
+        prs = parser.Parser(config)
+        msg = prs.force_parse(operation[1])
+        print(coder.decode(msg))
+        
+        

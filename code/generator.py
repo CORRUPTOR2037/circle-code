@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 import aggdraw
 from math import cos, sin, pi
-
+from code import codec
 
 class Generator:
     def __init__(self, config):
@@ -21,9 +21,13 @@ class Generator:
         self.insert_logo(image)
         draw = aggdraw.Draw(image)
         
-        self.insert_centring_key(draw)
+        if self.config.transform_key_radius is not None:
+            self.insert_transform_key(draw)
         
-        self.insert_data(draw, data)
+        if data is not None:
+            self.insert_data(draw, data)
+        else:
+            self.test_layers(draw)
         
         draw.flush()
         
@@ -143,9 +147,9 @@ class Generator:
         
         
     
-    def insert_centring_key(self, draw):
+    def insert_transform_key(self, draw):
     
-        center = (self.config.size / 2  + self.config.key_radius, self.config.size / 2)
+        center = (self.config.size / 2  + self.config.transform_key_radius, self.config.size / 2)
         width = self.config.data_width / 2
         fill = aggdraw.Brush(self.config.data_color)
         draw.ellipse((center[0] - width, center[1] - width,
@@ -158,48 +162,103 @@ class Generator:
         fill = aggdraw.Brush(self.config.data_color)
         pen = aggdraw.Pen(self.config.data_color, width * 2 + 1)
         
+        data_size = len(data)
+        
         ofs = 0
         for i in range(1, 11):
-            if ofs >= len(data):
-                break
             key = 'data_layer_' + str(i)
             try:
                 layer = self.config.__getattr__(key)
                 radius, count = layer
-                layer_data = data[ofs : min(ofs + count, len(data))]
-                ofs += count
             except:
                 continue
             
-            point = (center[0], center[1])
-            ac, ar = 2 * pi / count, 360 / count
-            field = (point[0] - radius, point[1] - radius,
-                     point[0] + radius, point[1] + radius)
-            i1 = 0
-            dl = len(layer_data)
-            while i1 < dl:
-                if not layer_data[i1]:
-                    i1 += 1
-                    continue
-                
-                i2 = i1
-                while i2 + 1 < dl and layer_data[i2 + 1]:
-                    i2 += 1
-                p1 = i1 * ar
-                a1 = i1 * ac
-                a1 = (center[0] + cos(a1) * radius, center[1] - sin(a1) * radius)
-                p2 = i2 * ar
-                a2 = i2 * ac
-                a2 = (center[0] + cos(a2) * radius, center[1] - sin(a2) * radius)
- 
-                draw.ellipse((a1[0] - width, a1[1] - width,
-                              a1[0] + width, a1[1] + width), None, fill)
-                draw.ellipse((a2[0] - width, a2[1] - width,
-                              a2[0] + width, a2[1] + width), None, fill)
-                draw.arc(field, p1, p2, pen)
-                i1 = i2 + 1
-
+            layer_data = data[ofs : min(data_size, ofs+count)]
+            ofs += count
+            
+            if ofs > data_size:
+                while len(layer_data) < count:
+                    layer_data.append(False)
+            
+            layer_data = Generator.apply_mask(layer_data, self.config.mask)
+            Generator.draw_layer(draw, center, radius, count, layer_data, width, fill, pen)
+            
+            if ofs >= data_size:
+                break
+          
+    
+    def draw_layer(draw, center, radius, density, data, width, fill, pen):
+        ac, ar = 2 * pi / density, 360 / density
+        field = (center[0] - radius, center[1] - radius,
+                 center[0] + radius, center[1] + radius)
         
+        i1 = 0
+        data_size = len(data)
+            
+        while i1 < data_size:
+            if not data[i1]:
+                i1 += 1
+                continue
+                
+            i2 = i1
+            while data[(i2 + 1) % data_size]:
+                i2 += 1
+                
+            p1 = (i1) * ar
+            a1 = (i1) * ac
+            a1 = (center[0] + cos(a1) * radius, center[1] - sin(a1) * radius)
+            p2 = (i2) * ar
+            a2 = (i2) * ac
+            a2 = (center[0] + cos(a2) * radius, center[1] - sin(a2) * radius)
+
+            draw.ellipse((a1[0] - width, a1[1] - width,
+                          a1[0] + width, a1[1] + width), None, fill)
+            draw.ellipse((a2[0] - width, a2[1] - width,
+                          a2[0] + width, a2[1] + width), None, fill)
+            draw.arc(field, p1, p2, pen)
+            i1 = i2 + 1
+        
+        
+    def test_layers(self, draw):
+        center = (self.config.size / 2, self.config.size / 2)
+        width = self.config.data_width / 2
+        fill = aggdraw.Brush(self.config.data_color)
+
+        for i in range(1, 11):
+            try:
+                key = 'data_layer_' + str(i)
+                layer = self.config.__getattr__(key)
+                radius, count = layer
+                Generator.test_layer(draw, center, radius, count, width, fill)
+            except:
+                continue
+        
+        
+    def test_layer(draw, center, radius, density, width, fill):
+        ac, ar = 2 * pi / density, 360 / density
+        field = (center[0] - radius, center[1] - radius,
+                 center[0] + radius, center[1] + radius)
+        
+        i1 = 0
+        while i1 < density:
+            p1 = (i1) * ar
+            a1 = (i1) * ac
+            a1 = (center[0] + cos(a1) * radius, center[1] - sin(a1) * radius)
+            draw.ellipse((a1[0] - width, a1[1] - width,
+                          a1[0] + width, a1[1] + width), None, fill)
+            i1 += 1
+         
+        
+    def apply_mask(data, mask):
+        if mask is None:
+            mask = [0,0,1,0,1]
+        elif len(mask) == 0:
+            return data
+        
+        l = len(mask)
+        return [not d if mask[i % l] else d for i, d in enumerate(data)]
+    
+    
     def show(self):
         self.last_image.show()
     

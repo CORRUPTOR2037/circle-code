@@ -2,49 +2,72 @@ from reedsolo import RSCodec
 
 class Codec:
     
+    empty = '\x00'
+    
     def __init__(self, config):
         
-        alphabet = config.alphabet
-        if config.alphabet is None:
-            alphabet = ''
-            for i in range(128):
-                alphabet += chr(i)
+        self.set_alphabet(config.alphabet)
         
-        self.alphabet = alphabet
+        self.ecc = config.ecc if config.ecc is not None else 14
+        self.codec = RSCodec(self.ecc)
+        
+    
+    def set_alphabet(self, text):
+        
+        if text is None:
+            text = ''
+            for i in range(1, 128):
+                text += chr(i)
+            
+        self.alphabet = text
         self.size = 1
-        while 2 ** self.size < len(self.alphabet):
+        while 2 ** self.size < len(self.alphabet) + 1:
             self.size += 1
-        
-        ecc = config.ecc if config.ecc is not None else 14
-        self.codec = RSCodec(ecc) 
-        
-        
+    
+    
     def encode(self, message):
+        
         bits = []
         for c in message:
-            a = self.alphabet.find(c)
+            if c == Codec.empty:
+                bits += [0] * self.size
+                continue
+            
+            a = self.alphabet.find(c) + 1
             if a < 0: continue
             
             for i in range(self.size):
                 bits.append(a % 2)
                 a = int(a / 2)
         
-        encoded = self.codec.encode(Codec.bits_to_bytes(bits))
+        encoded = Codec.bits_to_bytes(bits)
+        encoded = self.codec.encode(encoded)
         encoded = Codec.bytes_to_bits(encoded)
+        
         return encoded
     
     
-    def decode(self, code):
-        bits = self.codec.decode(code)
-        msg = ''
+    def decode(self, decoded):
+        decoded = Codec.bits_to_bytes(decoded)
+        while decoded[-1] == 0:
+            decoded = decoded[:-1]
         
+        decoded = self.codec.decode(decoded)
+        
+        bits = Codec.bytes_to_bits(decoded)
+        msg = ''
+            
         for i in range(0, len(bits), self.size):
+
             s = 0
             for j, c in enumerate(bits[i : i+self.size]):
-                s += int(c) * (2 ** j)
+                c = int(c) * (2 ** j)
+                s += c
             
-            msg += chr(s)
-            
+            if s == 0:
+                break
+            msg += self.alphabet[s - 1]
+        
         return msg
 
     
@@ -77,5 +100,4 @@ class Codec:
             bits_ += ar
         
         return bits_
-
 
