@@ -134,6 +134,7 @@ if __name__ == '__main__':
     elif operation[0] == 'parse':
         prs = parser.Parser(config)
         msg = prs.parse(operation[1])
+        print(msg)
         print(coder.decode(msg))
     
     elif operation[0] == 'Fparse':

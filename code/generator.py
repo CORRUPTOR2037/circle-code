@@ -154,16 +154,20 @@ class Generator:
         
         index, radius, count = self.config.get_lower_layer()
         
-        mask, trigger_pos = find_best_mask(data)
-        prefix = [False] + [True] * 8 + [False] + mask
-        if trigger_pos is not None:
-            trigger_pos = count - trigger_pos
-            while trigger_pos > 0:
-                trigger_pos -= 1
-                prefix.append(True)
+        prefix = [False] + [True] * 8 + [False]
+        if self.config.apply_mask:
+            mask, trigger_pos = find_best_mask(data)
+            if trigger_pos is not None:
+                trigger_pos = count - trigger_pos
+                while trigger_pos > 0:
+                    trigger_pos -= 1
+                    prefix.append(True)
+            data = apply_mask(data, mask)
+        else:
+            mask = [False] * 4
         
-        prefix.append(False)
-        data = prefix + apply_mask(data, mask)
+        data = prefix + mask + [False] + data
+
         data_size = len(data)
         
         ofs = 0
@@ -185,8 +189,8 @@ class Generator:
                     layer_data += [True] * 8
                 while len(layer_data) < count:
                     layer_data.append(next(random_generator))
-            
-            print(layer_data)
+            #print('layer', i, ofs)
+            #print(layer_data)
             Generator.draw_layer(draw, center, radius, count, layer_data, width, fill, pen)
             
         if ofs < data_size:
@@ -295,7 +299,7 @@ def find_best_mask(data):
 
 import random
 def yield_random():
-    past = [False] * 7
+    past = [True] * 7
     while True:
         if False not in past:
             nxt = False

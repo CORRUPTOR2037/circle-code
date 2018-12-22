@@ -35,7 +35,8 @@ class Parser:
         data = list(image.getdata())
         
         # get rid of outline, if it is presented
-        if self.config.outline_color is not None and self.config.outline_width is not None:
+        if (self.config.outline_width is not None and
+            colors_equal(self.config.outline_color, self.config.data_color)):
             color = self.config.outline_color
             data = Parser.del_outline(data, image.size, color)
             image.putdata(data)
@@ -122,6 +123,8 @@ class Parser:
             if True not in msg:
                 break
             
+            #print('layer', l)
+            #print(msg)
             layers_data.append(msg)
             l += 1
         
@@ -142,10 +145,12 @@ class Parser:
 
         # clearing garbage at last
         pos = find_sublist(msg, [True] * 8, start_at_end=True)
+        #print('pos', pos)
         if pos >= 0:
             msg = msg[0:pos]
-
-        msg = generator.apply_mask(msg, mask)
+        
+        if self.config.apply_mask:
+            msg = generator.apply_mask(msg, mask)
 
         return msg
     

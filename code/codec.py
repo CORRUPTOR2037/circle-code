@@ -32,14 +32,13 @@ class Codec:
             if a < 0: continue
             
             for i in range(self.size):
-                bits.append(a % 2)
+                bits.append(a % 2 == 1)
                 a = int(a / 2)
-        
         
         encoded = Codec.bits_to_bytes(bits)
         encoded = self.codec.encode(encoded)
         encoded = Codec.bytes_to_bits(encoded)
-        
+
         return encoded
     
     
@@ -47,9 +46,8 @@ class Codec:
         decoded = Codec.bits_to_bytes(decoded)
         while decoded[-1] == 0:
             decoded = decoded[:-1]
-        
+            
         decoded = self.codec.decode(decoded)
-        
         bits = Codec.bytes_to_bits(decoded)
         msg = ''
             

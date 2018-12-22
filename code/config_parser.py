@@ -33,7 +33,8 @@ class Config:
             'data_layer_1': (180, 120),
             'data_layer_2': (200, 140),
             'data_layer_3': (220, 160),
-            'parser_raise_brightness': 1.1
+            'parser_raise_brightness': 1.1,
+            'apply_mask': True
         }
 
 
@@ -99,6 +100,10 @@ class Config:
     def __getattr__(self, name):
         return self.config[name] if name in self.config else None
     
+    
+    def put(self, name, value):
+        self.config[name] = value
+        
     
     def __repr__(self):
         return self.config.__repr__()
