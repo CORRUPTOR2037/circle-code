@@ -29,11 +29,11 @@ class Config:
             'data_color': (255, 255, 255),
             'generated_filename': 'code',
             'ecc': 14,
-            'transform_key_radius': None,
             'data_width': 10,
             'data_layer_1': (180, 120),
             'data_layer_2': (200, 140),
-            'data_layer_3': (220, 160)
+            'data_layer_3': (220, 160),
+            'parser_raise_brightness': 1.1
         }
 
 
@@ -69,8 +69,36 @@ class Config:
             
             self.config[key] = val
     
+    
+    def get_lower_layer(self) -> int:
+        m = None
+        for i in range(1, 11):
+            key = 'data_layer_' + str(i)
+            try:
+                layer = self.__getattr__(key)
+                if m is None or m[1] > layer[0]:
+                    m = (i, layer[0], layer[1])
+            except:
+                continue
+        return m
+    
+        
+    def get_wider_layer(self):
+        m = None
+        for i in range(1, 11):
+            key = 'data_layer_' + str(i)
+            try:
+                layer = self.__getattr__(key)
+                if m is None or m[1] < layer[0]:
+                    m = (i, layer[0], layer[1])
+            except:
+                continue
+        return m
+        
+        
     def __getattr__(self, name):
         return self.config[name] if name in self.config else None
+    
     
     def __repr__(self):
         return self.config.__repr__()

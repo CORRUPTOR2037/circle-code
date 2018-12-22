@@ -1,9 +1,7 @@
 from reedsolo import RSCodec
 
 class Codec:
-    
-    empty = '\x00'
-    
+
     def __init__(self, config):
         
         self.set_alphabet(config.alphabet)
@@ -28,17 +26,15 @@ class Codec:
     def encode(self, message):
         
         bits = []
+        
         for c in message:
-            if c == Codec.empty:
-                bits += [0] * self.size
-                continue
-            
-            a = self.alphabet.find(c) + 1
+            a = self.alphabet.find(c)
             if a < 0: continue
             
             for i in range(self.size):
                 bits.append(a % 2)
                 a = int(a / 2)
+        
         
         encoded = Codec.bits_to_bytes(bits)
         encoded = self.codec.encode(encoded)
@@ -66,10 +62,10 @@ class Codec:
             
             if s == 0:
                 break
-            msg += self.alphabet[s - 1]
+            msg += self.alphabet[s]
         
         return msg
-
+    
     
     def bits_to_bytes(bits_):
         bytes_ = []

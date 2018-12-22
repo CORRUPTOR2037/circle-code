@@ -145,26 +145,29 @@ class Generator:
         
         image.putdata(data)
         
-        
-    
-    def insert_transform_key(self, draw):
-    
-        center = (self.config.size / 2  + self.config.transform_key_radius, self.config.size / 2)
-        width = self.config.data_width / 2
-        fill = aggdraw.Brush(self.config.data_color)
-        draw.ellipse((center[0] - width, center[1] - width,
-                      center[0] + width, center[1] + width), None, fill)
-    
-        
+                
     def insert_data(self, draw, data):
         center = (self.config.size / 2, self.config.size / 2)
         width = self.config.data_width / 2
         fill = aggdraw.Brush(self.config.data_color)
         pen = aggdraw.Pen(self.config.data_color, width * 2 + 1)
         
+        index, radius, count = self.config.get_lower_layer()
+        
+        mask, trigger_pos = find_best_mask(data)
+        prefix = [False] + [True] * 8 + [False] + mask
+        if trigger_pos is not None:
+            trigger_pos = count - trigger_pos
+            while trigger_pos > 0:
+                trigger_pos -= 1
+                prefix.append(True)
+        
+        prefix.append(False)
+        data = prefix + apply_mask(data, mask)
         data_size = len(data)
         
         ofs = 0
+        random_generator = yield_random()
         for i in range(1, 11):
             key = 'data_layer_' + str(i)
             try:
@@ -177,15 +180,18 @@ class Generator:
             ofs += count
             
             if ofs > data_size:
+                # if data has ended on this layer
+                if len(layer_data) > 0:
+                    layer_data += [True] * 8
                 while len(layer_data) < count:
-                    layer_data.append(False)
+                    layer_data.append(next(random_generator))
             
-            layer_data = Generator.apply_mask(layer_data, self.config.mask)
+            print(layer_data)
             Generator.draw_layer(draw, center, radius, count, layer_data, width, fill, pen)
             
-            if ofs >= data_size:
-                break
-          
+        if ofs < data_size:
+            raise Exception('Not enough layers to encode data on. Data width:', data_size, ', Can be encoded:', ofs)
+    
     
     def draw_layer(draw, center, radius, density, data, width, fill, pen):
         ac, ar = 2 * pi / density, 360 / density
@@ -193,8 +199,7 @@ class Generator:
                  center[0] + radius, center[1] + radius)
         
         i1 = 0
-        data_size = len(data)
-            
+        data_size = min(density, len(data))
         while i1 < data_size:
             if not data[i1]:
                 i1 += 1
@@ -248,17 +253,57 @@ class Generator:
                           a1[0] + width, a1[1] + width), None, fill)
             i1 += 1
          
-        
-    def apply_mask(data, mask):
-        if mask is None:
-            mask = [0,0,1,0,1]
-        elif len(mask) == 0:
-            return data
-        
-        l = len(mask)
-        return [not d if mask[i % l] else d for i, d in enumerate(data)]
-    
     
     def show(self):
         self.last_image.show()
     
+    
+def to_byte(number):
+    ar = []
+    
+    for i in range(8):
+        ar.append(number % 2 == 1)
+        number = number >> 1
+    
+    return ar
+       
+       
+def apply_mask(data, mask):       
+    l = len(mask)
+    return [not d if mask[i % l] else d for i, d in enumerate(data)]
+
+
+def find_best_mask(data):
+    m = (0,0)
+    for i in range(1, 16):
+        mask = to_byte(i)[0:4]
+        ndata = apply_mask(data, mask)
+        count = 0
+        for j, bit in enumerate(ndata):
+            if bit == True:
+                count += 1
+            else:
+                count = 0
+            if count == 8:
+                if j > m[1]:
+                    m = (mask, j)
+                break
+        if count < 8:
+            return (mask, None)
+    return m
+
+
+import random
+def yield_random():
+    past = [False] * 7
+    while True:
+        if False not in past:
+            nxt = False
+        elif True not in past:
+            nxt = True
+        else:
+            nxt = random.randint(0, 1) == 1
+            
+        del past[0]
+        past.append(nxt)
+        yield nxt
